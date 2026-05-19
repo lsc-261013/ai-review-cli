@@ -3,6 +3,8 @@
 import { Command } from 'commander'
 import chalk from 'chalk'
 import { reviewCode, ReviewMode } from './reviewer'
+import { generateHtmlReport } from './reporter'
+import * as fs from 'fs'
 
 const program = new Command()
 
@@ -15,7 +17,8 @@ program
   .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY env)')
   .option('--model <model>', 'Claude model to use', 'claude-sonnet-4-6')
   .option('--max-tokens <n>', 'Max output tokens', '8000')
-  .option('--output <file>', 'Save report to file')
+  .option('--output <file>', 'Save markdown report to file')
+  .option('--html [file]', 'Generate visual HTML report (optionally specify output path)')
   .action(async (paths: string[], options) => {
     const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY
 
@@ -49,9 +52,16 @@ program
       console.log(chalk.green('\n✅ Review complete.\n'))
 
       if (options.output) {
-        const fs = require('fs')
         fs.writeFileSync(options.output, report, 'utf-8')
-        console.log(chalk.gray(`Report saved to ${options.output}`))
+        console.log(chalk.gray(`Markdown report saved to ${options.output}`))
+      }
+
+      if (options.html !== undefined) {
+        const htmlFile = typeof options.html === 'string' ? options.html : 'review-report.html'
+        const html = generateHtmlReport(report, mode, targetPaths)
+        fs.writeFileSync(htmlFile, html, 'utf-8')
+        console.log(chalk.green(`📊 HTML report saved to ${htmlFile}`))
+        console.log(chalk.gray(`   Open with: start ${htmlFile}`))
       }
     } catch (err: any) {
       console.error(chalk.red(`\nError: ${err.message}`))
