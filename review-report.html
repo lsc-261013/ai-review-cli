@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Code Review Report</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:#f5f5f5;color:#1a1a1a;line-height:1.6}
+.container{max-width:900px;margin:0 auto;padding:40px 24px}
+.header{background:#fff;border-radius:16px;padding:32px;margin-bottom:24px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.header h1{font-size:28px;font-weight:700;margin-bottom:8px}
+.header .meta{font-size:14px;color:#888}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.sum-card{background:#fff;border-radius:12px;padding:20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.sum-card .num{font-size:36px;font-weight:700}
+.sum-card .label{font-size:13px;color:#888;margin-top:4px}
+.sum-card.critical .num{color:#E74C3C}
+.sum-card.high .num{color:#E67E22}
+.sum-card.medium .num{color:#F39C12}
+.sum-card.low .num{color:#3498DB}
+.sum-card.total .num{color:#1a1a1a}
+.issue-card{background:#fff;border-radius:12px;padding:20px 24px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.04);border-left:4px solid #ccc}
+.issue-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.issue-severity{display:inline-block;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.issue-title{font-size:16px;font-weight:600}
+.issue-meta{font-size:13px;color:#888;margin-bottom:8px}
+.issue-section{font-size:14px;margin:6px 0}
+.issue-code{background:#f8f8f8;border-radius:8px;padding:12px 16px;font-size:13px;font-family:'SFMono-Regular',Consolas,monospace;overflow-x:auto;margin:8px 0}
+.verdict{background:#fff;border-radius:12px;padding:20px 24px;text-align:center;font-size:16px;font-weight:600;box-shadow:0 1px 6px rgba(0,0,0,.04)}
+.verdict.good{color:#07C160}
+.verdict.bad{color:#E74C3C}
+.footer{text-align:center;margin-top:32px;font-size:13px;color:#bbb}
+@media(max-width:600px){.container{padding:16px}.summary{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+  <h1>🔍 AI Code Review Report</h1>
+  <div class="meta">模式：FULL · 路径：./src · 2026/5/21 22:56:33</div>
+</div>
+
+<div class="summary">
+  <div class="sum-card total"><div class="num">7</div><div class="label">总计问题</div></div>
+  <div class="sum-card critical"><div class="num">1</div><div class="label">🔴 严重</div></div>
+  <div class="sum-card high"><div class="num">2</div><div class="label">🟠 高危</div></div>
+  <div class="sum-card medium"><div class="num">2</div><div class="label">🟡 中危</div></div>
+  <div class="sum-card low"><div class="num">2</div><div class="label">🔵 低危</div></div>
+</div>
+
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� CRITICAL Hardcoded API Key in Source Code</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 12</div>
+      <div class="issue-section"><strong>问题：</strong>Anthropic API key is hardcoded directly in the source file. If committed to git, anyone can use it.</div>
+      <div class="issue-section"><strong>修复：</strong>Move the API key to environment variable: `process.env.API_KEY`, and add `.env` to `.gitignore`.</div>
+      
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� HIGH Missing Error Handling in API Call</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 45-52</div>
+      <div class="issue-section"><strong>问题：</strong>The `fetch()` API call to `/v1/chat/completions` has no try/catch wrapper. Network failures or API errors would crash the CLI ungracefully.</div>
+      <div class="issue-section"><strong>修复：</strong>```ts</div>
+      <pre class="issue-code">try {
+  const res = await fetch(url, options)
+  if (!res.ok) throw new Error(`API error ${res.status}`)
+  return await res.json()
+} catch (err) {
+  console.error('Review failed:', err.message)
+  process.exit(1)
+}</pre>
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� HIGH File Read Without Encoding Check</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 28</div>
+      <div class="issue-section"><strong>问题：</strong>`fs.readFileSync(p, 'utf-8')` blindly reads all matched files. Binary files with matching extensions could crash the parser and produce garbled output.</div>
+      <div class="issue-section"><strong>修复：</strong>Add a content-length check before reading, skip files larger than 1MB or with binary signatures.</div>
+      
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� MEDIUM Prompt Truncation Risk</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 62</div>
+      <div class="issue-section"><strong>问题：</strong>When reviewing large projects, the combined prompt may exceed the LLM's context window. Currently only limits to 20 files without calculating total token count.</div>
+      <div class="issue-section"><strong>修复：</strong>Add a rough token estimator (1 char ≈ 0.25 tokens) and cap at the model's context limit (e.g., 64K for DeepSeek). Show a warning when truncation occurs.</div>
+      
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� MEDIUM Missing Input Validation for Paths</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 18</div>
+      <div class="issue-section"><strong>问题：</strong>User-provided paths are passed directly to `fs.statSync()` without validation. Non-existent paths throw unhandled exceptions.</div>
+      <div class="issue-section"><strong>修复：</strong>Add `fs.existsSync(p)` check before calling `fs.statSync()`, and skip non-existent paths with a warning.</div>
+      
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� LOW Magic Number in Code File Detection</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 45</div>
+      <div class="issue-section"><strong>问题：</strong>The list of supported file extensions is hardcoded. Adding support for a new language requires editing the source code.</div>
+      <div class="issue-section"><strong>修复：</strong>Move the extension list to a config file or accept it via CLI flag `--ext`. Make it overrideable with `--ext .ts,.tsx,.js`.</div>
+      
+    </div>
+
+    <div class="issue-card">
+      <div class="issue-head">
+        <span class="issue-severity" style="background:#666">�</span>
+        <span class="issue-title">� LOW Inconsistent Console Output Formatting</span>
+      </div>
+      <div class="issue-meta">📄  · 📍 行 10, 35, 52</div>
+      <div class="issue-section"><strong>问题：</strong>Some console messages use `chalk` for coloring while others use raw strings with emoji prefixes. The mixed styling makes the output feel inconsistent.</div>
+      <div class="issue-section"><strong>修复：</strong>Define a consistent format: use `chalk.bold()` for section headers, `chalk.gray()` for metadata, and reserve emoji only for severity indicators.</div>
+      
+    </div>
+
+<div class="verdict bad">
+  ⚠️ 存在严重问题，建议修复后再提交
+</div>
+
+<div class="footer">Generated by ai-review-cli · Powered by Claude API</div>
+</div>
+</body>
+</html>

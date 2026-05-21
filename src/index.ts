@@ -4,6 +4,7 @@ import { Command } from 'commander'
 import chalk from 'chalk'
 import { reviewCode, ReviewMode } from './reviewer'
 import { generateHtmlReport } from './reporter'
+import { DEMO_REPORT } from './demo'
 import * as fs from 'fs'
 
 const program = new Command()
@@ -14,16 +15,32 @@ program
   .version('1.0.0')
   .argument('[paths...]', 'Files or directories to review (default: ./src)')
   .option('-m, --mode <mode>', 'Review mode: full | security | performance', 'full')
-  .option('-k, --api-key <key>', 'Anthropic API key (or set ANTHROPIC_API_KEY env)')
-  .option('--model <model>', 'Claude model to use', 'claude-sonnet-4-6')
+  .option('-k, --api-key <key>', 'API key (or set API_KEY env)')
+  .option('-p, --provider <name>', 'AI provider: deepseek | moonshot | qwen | anthropic | custom', 'deepseek')
+  .option('--model <model>', 'Model name (auto-detected per provider if not set)')
   .option('--max-tokens <n>', 'Max output tokens', '8000')
   .option('--output <file>', 'Save markdown report to file')
-  .option('--html [file]', 'Generate visual HTML report (optionally specify output path)')
+  .option('--html [file]', 'Generate visual HTML report')
+  .option('--demo', 'Generate a demo report without API key (for showcase)')
   .action(async (paths: string[], options) => {
-    const apiKey = options.apiKey || process.env.ANTHROPIC_API_KEY
+    // Demo 模式：不需要 API Key
+    if (options.demo) {
+      const report = DEMO_REPORT
+      console.log(report)
+      console.log(chalk.green('\n✅ Demo review complete.\n'))
+
+      const htmlFile = 'review-report.html'
+      const html = generateHtmlReport(report, 'full', ['./src'])
+      fs.writeFileSync(htmlFile, html, 'utf-8')
+      console.log(chalk.green(`📊 Demo HTML report saved to ${htmlFile}`))
+      return
+    }
+
+    const apiKey = options.apiKey || process.env.API_KEY
 
     if (!apiKey) {
-      console.error(chalk.red('Error: API key required. Use -k <key> or set ANTHROPIC_API_KEY env.'))
+      console.error(chalk.red('Error: API key required. Use -k <key> or set API_KEY env.'))
+      console.error(chalk.gray('Or use --demo to see a sample report without API key.'))
       process.exit(1)
     }
 
@@ -36,14 +53,16 @@ program
     }
 
     console.log(chalk.cyan(`\n🔍 AI Code Review — ${mode.toUpperCase()} mode`))
+    console.log(chalk.gray(`   Provider: ${options.provider || 'deepseek'}`))
     console.log(chalk.gray(`   Scanning: ${targetPaths.join(', ')}`))
-    console.log(chalk.gray(`   Model: ${options.model}\n`))
+    console.log(chalk.gray(`   Model: ${options.model || 'auto'}\n`))
 
     try {
       const report = await reviewCode({
         paths: targetPaths,
         mode,
         apiKey,
+        provider: options.provider || 'deepseek',
         model: options.model,
         maxTokens: parseInt(options.maxTokens),
       })

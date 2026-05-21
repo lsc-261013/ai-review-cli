@@ -1,46 +1,53 @@
 # ai-review-cli
 
-> AI-powered code review CLI — 用 Claude API 自动审查代码
+> AI-powered code review CLI — 调用 AI 自动审查代码
 
-一个命令行工具：敲一行命令，AI 自动扫描代码目录，输出结构化审查报告（安全问题、Bug、代码规范、性能风险）。
+一个命令行工具：敲一行命令，AI 自动扫描代码目录，输出结构化审查报告（安全问题、Bug、代码规范、性能风险）。支持可视化的 HTML 报告。
 
-**这个项目是 AI-native 开发的实践：** 全程使用 Claude Code 辅助编码，通过精心设计的 System Prompt 让 LLM 扮演资深 Code Reviewer。
+**支持国产大模型：** DeepSeek、Moonshot（月之暗面）、通义千问等，国内直接可用。
 
 ---
 
 ## 安装
 
 ```bash
-npm install
+npm install --registry https://registry.npmmirror.com
 npm run build
 npm link
 ```
 
+## 配置 API Key
+
+去对应平台注册获取 Key：
+
+| 平台 | 注册地址 | 价格 |
+|------|---------|------|
+| **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com) | ¥1/百万 tokens |
+| **Moonshot** | [platform.moonshot.cn](https://platform.moonshot.cn) | 注册送 ¥15 |
+| **通义千问** | [dashscope.aliyun.com](https://dashscope.aliyun.com) | 有免费额度 |
+
+设置环境变量：
+```bash
+export API_KEY="sk-xxx"
+```
+
 ## 使用
 
-设置 API Key：
 ```bash
-export ANTHROPIC_API_KEY="sk-ant-xxx"
-```
-
-审查整个项目：
-```bash
+# 用 DeepSeek 审查（默认，推荐国内用户）
 ai-review ./src
-```
 
-只查安全问题：
-```bash
-ai-review ./src --mode security
-```
+# 指定 provider
+ai-review ./src -p moonshot
+ai-review ./src -p qwen
+ai-review ./src -p anthropic
 
-只查性能问题：
-```bash
-ai-review ./src --mode performance
-```
+# 审查模式
+ai-review ./src -m security    # 只查安全问题
+ai-review ./src -m performance # 只查性能问题
 
-保存报告：
-```bash
-ai-review ./src --output review-report.md
+# 生成可视化 HTML 报告
+ai-review ./src --html
 ```
 
 ---

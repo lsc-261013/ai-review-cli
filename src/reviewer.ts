@@ -1,4 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk'
 import * as fs from 'fs'
 import { SYSTEM_PROMPT, fileReviewPrompt, securityReviewPrompt, perfReviewPrompt } from './prompts'
 
@@ -8,6 +7,7 @@ export interface ReviewOptions {
   paths: string[]
   mode: ReviewMode
   apiKey: string
+  provider?: string
   model?: string
   maxTokens?: number
 }
@@ -46,49 +46,119 @@ function isCodeFile(path: string): boolean {
   return ['ts', 'tsx', 'js', 'jsx', 'vue', 'py', 'go', 'rs', 'java', 'cs', 'rb', 'php', 'c', 'cpp', 'h', 'css', 'scss', 'html'].includes(ext)
 }
 
-function buildMessages(files: { path: string; content: string }[], mode: ReviewMode, maxFiles: number) {
+function buildPrompt(files: { path: string; content: string }[], mode: ReviewMode, maxFiles: number) {
   const selected = files.slice(0, maxFiles)
   let prompt = ''
-
   for (const f of selected) {
-    if (mode === 'security') {
-      prompt += securityReviewPrompt(f.path, f.content) + '\n\n---\n\n'
-    } else if (mode === 'performance') {
-      prompt += perfReviewPrompt(f.path, f.content) + '\n\n---\n\n'
-    } else {
-      prompt += fileReviewPrompt(f.path, f.content) + '\n\n---\n\n'
-    }
+    if (mode === 'security') prompt += securityReviewPrompt(f.path, f.content) + '\n\n---\n\n'
+    else if (mode === 'performance') prompt += perfReviewPrompt(f.path, f.content) + '\n\n---\n\n'
+    else prompt += fileReviewPrompt(f.path, f.content) + '\n\n---\n\n'
   }
-
   if (files.length > maxFiles) {
-    prompt += `\n(Showing ${maxFiles} of ${files.length} files. Use --max-files to adjust.)`
+    prompt += `\n(Showing ${maxFiles} of ${files.length} files.)`
   }
-
   return prompt
 }
 
+const PROVIDERS: Record<string, { url: string; model: string }> = {
+  deepseek: {
+    url: 'https://api.deepseek.com/v1/chat/completions',
+    model: 'deepseek-chat',
+  },
+  moonshot: {
+    url: 'https://api.moonshot.cn/v1/chat/completions',
+    model: 'moonshot-v1-8k',
+  },
+  qwen: {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    model: 'qwen-plus',
+  },
+}
+
+async function callOpenAICompatible(apiKey: string, url: string, model: string, prompt: string, maxTokens: number): Promise<string> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.3,
+    }),
+  })
+
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`API error ${res.status}: ${errBody}`)
+  }
+
+  const data: any = await res.json()
+  return data.choices?.[0]?.message?.content || JSON.stringify(data)
+}
+
+async function callAnthropic(apiKey: string, model: string, prompt: string, maxTokens: number): Promise<string> {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  })
+
+  if (!res.ok) {
+    const errBody = await res.text()
+    throw new Error(`API error ${res.status}: ${errBody}`)
+  }
+
+  const data: any = await res.json()
+  return data.content
+    ?.filter((b: any) => b.type === 'text')
+    .map((b: any) => b.text)
+    .join('\n') || ''
+}
+
 export async function reviewCode(options: ReviewOptions): Promise<string> {
-  const { paths, mode, apiKey, model = 'claude-sonnet-4-6', maxTokens = 8000 } = options
+  const { paths, mode, apiKey, provider = 'deepseek', model, maxTokens = 8000 } = options
 
   const files = collectFiles(paths)
   if (files.length === 0) {
     return 'No code files found in the specified paths.'
   }
 
-  const prompt = buildMessages(files, mode, 20)
-  const anthropic = new Anthropic({ apiKey })
+  const prompt = buildPrompt(files, mode, 20)
 
-  const msg = await anthropic.messages.create({
-    model,
-    max_tokens: maxTokens,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  // OpenRouter / 自定义 URL
+  if (provider === 'custom') {
+    const url = process.env.API_BASE_URL || 'https://api.deepseek.com/v1/chat/completions'
+    const m = model || 'deepseek-chat'
+    return callOpenAICompatible(apiKey, url, m, prompt, maxTokens)
+  }
 
-  const text = msg.content
-    .filter((block): block is Anthropic.TextBlock => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
+  // 国产大模型 (OpenAI 兼容)
+  if (provider in PROVIDERS) {
+    const p = PROVIDERS[provider]
+    const m = model || p.model
+    return callOpenAICompatible(apiKey, p.url, m, prompt, maxTokens)
+  }
 
-  return text
+  // Anthropic
+  if (provider === 'anthropic') {
+    const m = model || 'claude-sonnet-4-6'
+    return callAnthropic(apiKey, m, prompt, maxTokens)
+  }
+
+  throw new Error(`Unknown provider: ${provider}. Use: deepseek | moonshot | qwen | anthropic | custom`)
 }
