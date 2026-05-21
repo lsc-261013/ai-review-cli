@@ -4,7 +4,7 @@
 
 一个命令行工具：敲一行命令，AI 自动扫描代码目录，输出结构化审查报告（安全问题、Bug、代码规范、性能风险）。支持可视化的 HTML 报告。
 
-**支持国产大模型：** DeepSeek、Moonshot（月之暗面）、通义千问等，国内直接可用。
+**支持国产大模型：** DeepSeek、Kimi、通义千问等，国内直接可用。
 
 ---
 
@@ -30,7 +30,7 @@ npm link
 | 平台 | 注册地址 | 价格 |
 |------|---------|------|
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com) | ¥1/百万 tokens |
-| **Moonshot** | [platform.kimi.cn](https://platform.kimi.cn) | 注册送 ¥15 |
+| **Kimi** | [platform.moonshot.cn](https://platform.moonshot.cn) | 注册送 ¥15 |
 | **通义千问** | [dashscope.aliyun.com](https://dashscope.aliyun.com) | 有免费额度 |
 
 **设置环境变量：**
@@ -55,7 +55,7 @@ ai-review --demo --html           # 还生成 HTML
 
 # 真实审查
 ai-review ./src                   # 默认用 DeepSeek
-ai-review ./src -p kimi       # 月之暗面
+ai-review ./src -p kimi       # Kimi
 ai-review ./src -p qwen           # 通义千问
 ai-review ./src -p anthropic      # Claude
 
