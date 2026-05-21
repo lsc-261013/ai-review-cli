@@ -30,7 +30,7 @@ npm link
 | 平台 | 注册地址 | 价格 |
 |------|---------|------|
 | **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com) | ¥1/百万 tokens |
-| **Moonshot** | [platform.moonshot.cn](https://platform.moonshot.cn) | 注册送 ¥15 |
+| **Moonshot** | [platform.kimi.cn](https://platform.kimi.cn) | 注册送 ¥15 |
 | **通义千问** | [dashscope.aliyun.com](https://dashscope.aliyun.com) | 有免费额度 |
 
 **设置环境变量：**
@@ -55,7 +55,7 @@ ai-review --demo --html           # 还生成 HTML
 
 # 真实审查
 ai-review ./src                   # 默认用 DeepSeek
-ai-review ./src -p moonshot       # 月之暗面
+ai-review ./src -p kimi       # 月之暗面
 ai-review ./src -p qwen           # 通义千问
 ai-review ./src -p anthropic      # Claude
 

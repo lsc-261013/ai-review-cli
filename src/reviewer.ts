@@ -65,7 +65,7 @@ const PROVIDERS: Record<string, { url: string; model: string }> = {
     url: 'https://api.deepseek.com/v1/chat/completions',
     model: 'deepseek-chat',
   },
-  moonshot: {
+  kimi: {
     url: 'https://api.moonshot.cn/v1/chat/completions',
     model: 'moonshot-v1-8k',
   },
